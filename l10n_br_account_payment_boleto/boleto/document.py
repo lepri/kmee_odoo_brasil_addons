@@ -58,16 +58,15 @@ class Boleto(object):
 
                 self.boleto = BoletoCaixaSigcb()
             else:
-                self.boleto = bank.get_class_for_codigo(bank_code)
+                self.boleto = bank.get_class_for_codigo(bank_code)()
             self.create(move_line)
 
 
     def create(self, move_line):
         self.boleto.nosso_numero = move_line.ref.encode('utf-8')[2:]
         self.boleto.numero_documento = move_line.name.encode('utf-8')
-        self.boleto.data_vencimento = move_line.date_maturity
-        import pdb;pdb.set_trace()
-        self.boleto.data_documento = move_line.invoice.date_invoice
+        self.boleto.data_vencimento = datetime.date(datetime.strptime(move_line.date_maturity, '%Y-%m-%d'))
+        self.boleto.data_documento = datetime.date(datetime.strptime(move_line.invoice.date_invoice, '%Y-%m-%d'))
         self.boleto.data_processamento = date.today()
         self.boleto.valor = str(move_line.debit)
         self.boleto.valor_documento = str(move_line.debit)
@@ -121,14 +120,12 @@ class Boleto(object):
         :param payment_mode:
         :return:
         """
-        self.boleto.codigo_dv_banco = payment_mode_id.bank_id.bra_number_dig
         self.boleto.convenio = payment_mode_id.boleto_convenio.encode('utf-8')
         self.boleto.especie_documento = payment_mode_id.boleto_modalidade.encode('utf-8')
-        self.boleto.especie = payment_mode_id.boleto_modalidade.encode('utf-8')
         self.boleto.carteira = payment_mode_id.boleto_carteira.encode('utf-8')
-        self.boleto.agencia_conta_cedente = payment_mode_id.bank_id.bra_number.encode('utf-8')
+        self.boleto.agencia_cedente = payment_mode_id.bank_id.bra_number.encode('utf-8')
         self.boleto.conta_cedente = str(
-            payment_mode_id.bank_id.acc_number + payment_mode_id.bank_id.acc_number_dig).encode('utf-8')
+        payment_mode_id.bank_id.acc_number + payment_mode_id.bank_id.acc_number_dig).encode('utf-8')
         self.boleto.instrucoes = payment_mode_id.instrucoes
 
     def cedente(self, company):
@@ -151,18 +148,13 @@ class Boleto(object):
         :param partner:
         :return:
         '''
-        #self.boleto.sacado_endereco = partner.street + ', ' + partner.number
-        #self.boleto.sacado_cidade = partner.city
-        #self.boleto.sacado_bairro = partner.district
-        #self.boleto.sacado_uf = partner.state_id.code
-        #self.boleto.sacado_cep = partner.zip
-        #self.boleto.sacado_nome = partner.legal_name
-        #self.boleto.sacado_documento = partner.cnpj_cpf
-        self.boleto.sacado = [
-                "%s" % partner.legal_name,
-                "%s, %s - %s - %s - Cep. %s" % (partner.street, partner.number, partner.district, partner.city, partner.zip),
-                ""
-            ]
+        self.boleto.sacado_endereco = partner.street + ', ' + partner.number
+        self.boleto.sacado_cidade = partner.city
+        self.boleto.sacado_bairro = partner.district
+        self.boleto.sacado_uf = partner.state_id.code
+        self.boleto.sacado_cep = partner.zip
+        self.boleto.sacado_nome = partner.legal_name
+        self.boleto.sacado_documento = partner.cnpj_cpf
 
     @classmethod
     def get_pdfs(cls, boletoList):
